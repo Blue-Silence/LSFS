@@ -103,6 +103,7 @@ func (L *FSLog) Log2DiskBlock(start int, inodeMap map[int]BlockLayer.INodeMap) (
 			nodeCount++
 			//and also do something to change imap next (TO BE DONE)
 			iPart := inodeMap[n.InodeN/Setting.InodePerInodemapBlock]
+			iPart.Offset = n.InodeN / Setting.InodePerInodemapBlock
 			(iPart.InodeMapPart)[n.InodeN%Setting.InodePerInodemapBlock] = len(nodesByBlock) - 1 + start + 1 + segHead.InodeMapN
 			inodeMap[n.InodeN/Setting.InodePerInodemapBlock] = iPart
 		}

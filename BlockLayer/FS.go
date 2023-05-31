@@ -19,7 +19,8 @@ func (fs *BlockFS) ReadFile(inodeN int, index int) DiskLayer.Block {
 	return fs.VD.ReadBlock(inode.Pointers[index])
 }
 
-func (fs *BlockFS) INodeN2iNode(n int) INode {
+func (fs *BlockFS) INodeN2iNodeAndPointer(n int) (INode, int) {
+	// return Inode itself and the pointer to its block
 	iNodemapN := fs.superBlock.INodeMaps[n/Setting.InodePerInodemapBlock]
 	var iNodemap INodeMap = (fs.VD.ReadBlock(iNodemapN)).(INodeMap)
 	iNodeBlockN := iNodemap.InodeMapPart[n-iNodemap.Offset]
@@ -30,10 +31,15 @@ func (fs *BlockFS) INodeN2iNode(n int) INode {
 	var nB INodeBlock = (fs.VD.ReadBlock(iNodeBlockN)).(INodeBlock)
 	for _, v := range nB.NodeArr {
 		if v.Valid && v.InodeN == n {
-			return v
+			return v, iNodeBlockN
 		}
 	}
-	return INode{Valid: false}
+	return INode{Valid: false}, -1
+}
+
+func (fs *BlockFS) INodeN2iNode(n int) INode {
+	node, _ := fs.INodeN2iNodeAndPointer(n)
+	return node
 }
 
 func (fs *BlockFS) FindSpaceForSeg(len int) int {
@@ -73,4 +79,37 @@ func (fs *BlockFS) ReclaimBlock(start int, len int) {
 	}
 	fs.superBlock = super
 	fs.VD.WriteSuperBlock(super)
+}
+
+func (fs *BlockFS) GetIMapPointer(index int) int {
+	if index >= 0 && index < Setting.MaxINodemapPartN {
+		return fs.superBlock.INodeMaps[index]
+	} else {
+		return -1
+	}
+}
+
+func (fs *BlockFS) GetDataBPointer(inodeN int, index int) int {
+	inode := fs.INodeN2iNode(inodeN)
+	if !inode.Valid {
+		return -1
+	}
+	return inode.Pointers[index]
+}
+
+func (fs *BlockFS) GetOneSegHeadStartFrom(start int) int {
+	r := -1
+	/*for i := len(fs.superBlock.BitMap) - 1; i > 0; i-- {
+		if fs.superBlock.BitMap[i] && !(fs.superBlock.BitMap[i-1]) {
+			r = i
+			break
+		}
+	}*/
+	for i, v := range fs.superBlock.BitMap {
+		if i >= start && v {
+			r = i
+			break
+		}
+	}
+	return r
 }

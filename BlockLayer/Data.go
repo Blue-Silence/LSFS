@@ -23,7 +23,7 @@ type INodeMap struct {
 } // 1 per block
 
 type SegHead struct {
-	SegLen           int // total len in block size.
+	//SegLen           int // total len in block size.
 	InodeMapN        int
 	InodeBlockN      int
 	DataBlockN       int

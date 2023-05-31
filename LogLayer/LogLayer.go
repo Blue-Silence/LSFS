@@ -9,6 +9,8 @@ import (
 	"log"
 )
 
+const LogLenth = 200
+
 type DataBlockMem struct {
 	Inode int
 	Index int
@@ -103,6 +105,7 @@ func (L *FSLog) Log2DiskBlock(start int, inodeMap map[int]BlockLayer.INodeMap) (
 			nodeCount++
 			//and also do something to change imap next (TO BE DONE)
 			iPart := inodeMap[n.InodeN/Setting.InodePerInodemapBlock]
+			iPart.Offset = n.InodeN / Setting.InodePerInodemapBlock
 			(iPart.InodeMapPart)[n.InodeN%Setting.InodePerInodemapBlock] = len(nodesByBlock) - 1 + start + 1 + segHead.InodeMapN
 			inodeMap[n.InodeN/Setting.InodePerInodemapBlock] = iPart
 		}
@@ -152,6 +155,11 @@ func (L *FSLog) IsINodeInLog(n int) bool {
 		}
 	}
 	return false
+}
+
+func (L *FSLog) NeedCommit() bool {
+	_, _, dataBlockN, segLen := L.LenInBlock()
+	return segLen > LogLenth/3*2 || dataBlockN > BlockLayer.MaxEditBlcokN/3*2
 }
 
 // ///////////////////////////////////////////////////////////////////////////

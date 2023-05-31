@@ -47,8 +47,7 @@ func (afs *AppFS) findFreeINode() int {
 	return -1
 }
 
-func (afs *AppFS) LogCommit() {
-	imapNeeded := make(map[int]BlockLayer.INodeMap)
+func (afs *AppFS) LogCommitWithINMap(imapNeeded map[int]BlockLayer.INodeMap) {
 	for _, v := range afs.fLog.ImapNeeded() {
 		imapNeeded[v] = (afs.blockFs.VD.ReadBlock(afs.blockFs.VD.ReadSuperBlock().(BlockLayer.SuperBlock).INodeMaps[v])).(BlockLayer.INodeMap)
 	} //Get inaodmap needed
@@ -56,11 +55,30 @@ func (afs *AppFS) LogCommit() {
 	start := afs.blockFs.FindSpaceForSeg(logSegLen)
 	if start < 0 {
 		//WE will add GC later. TO BE DONE
+		afs.GC(-1)
 		log.Fatal("No space!")
 	}
 	bs, newIMap := afs.fLog.Log2DiskBlock(start, imapNeeded)
 	afs.blockFs.ApplyUpdate(start, bs, newIMap)
 	afs.fLog.InitLog()
+}
+
+func (afs *AppFS) LogCommit() {
+	/*
+		imapNeeded := make(map[int]BlockLayer.INodeMap)
+		for _, v := range afs.fLog.ImapNeeded() {
+			imapNeeded[v] = (afs.blockFs.VD.ReadBlock(afs.blockFs.VD.ReadSuperBlock().(BlockLayer.SuperBlock).INodeMaps[v])).(BlockLayer.INodeMap)
+		} //Get inaodmap needed
+		_, _, _, logSegLen := afs.fLog.LenInBlock()
+		start := afs.blockFs.FindSpaceForSeg(logSegLen)
+		if start < 0 {
+			//WE will add GC later. TO BE DONE
+			log.Fatal("No space!")
+		}
+		bs, newIMap := afs.fLog.Log2DiskBlock(start, imapNeeded)
+		afs.blockFs.ApplyUpdate(start, bs, newIMap)
+		afs.fLog.InitLog()*/
+	afs.LogCommitWithINMap(make(map[int]BlockLayer.INodeMap))
 }
 
 func (afs *AppFS) isINodeInLog(n int) bool {
@@ -85,12 +103,13 @@ func (afs *AppFS) CreateFile(fType int, name string) int {
 	if newInodeN == -1 {
 		log.Fatal("No inode number available.") //Maybe later we should check the log? Maybe later. TO BE DONE
 	}
-	if afs.fLog.ConstructLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN)}, []LogLayer.DataBlockMem{}) {
+	/*if afs.fLog.ConstructLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN)}, []LogLayer.DataBlockMem{}) {
 	} else {
 		afs.LogCommit()
 		//fmt.Println("Oh?")
 		afs.fLog.ConstructLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN)}, []LogLayer.DataBlockMem{})
-	}
+	}*/
+	afs.tryLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN)}, []LogLayer.DataBlockMem{})
 	return newInodeN
 }
 
@@ -106,7 +125,8 @@ func (afs *AppFS) WriteFile(inodeN int, index []int, data []DiskLayer.Block) {
 	for i, v := range index {
 		ds = append(ds, LogLayer.DataBlockMem{Inode: inodeN, Index: v, Data: data[i]})
 	}
-	afs.fLog.ConstructLog([]BlockLayer.INode{inode}, ds)
+	//afs.fLog.ConstructLog([]BlockLayer.INode{inode}, ds)
+	afs.tryLog([]BlockLayer.INode{inode}, ds)
 }
 
 func (afs *AppFS) ReadFile(inodeN int, index int) DiskLayer.Block {
@@ -121,7 +141,8 @@ func (afs *AppFS) DeleteFile(inodeN int) {
 		afs.LogCommit()
 	}
 	inode := BlockLayer.INode{InodeN: inodeN, Valid: false}
-	afs.fLog.ConstructLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
+	//afs.fLog.ConstructLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
+	afs.tryLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
 }
 
 func (afs *AppFS) DeleteBlockInFile(inodeN int, index []int) {
@@ -132,7 +153,20 @@ func (afs *AppFS) DeleteBlockInFile(inodeN int, index []int) {
 	for _, v := range index {
 		inode.Pointers[v] = -1
 	}
-	afs.fLog.ConstructLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
+	//afs.fLog.ConstructLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
+	afs.tryLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
+}
+
+func (afs *AppFS) tryLog(inodes []BlockLayer.INode, ds []LogLayer.DataBlockMem) {
+	if afs.fLog.NeedCommit() {
+		afs.LogCommit()
+	}
+	if !afs.fLog.ConstructLog(inodes, ds) {
+		afs.LogCommit()
+		if !afs.fLog.ConstructLog(inodes, ds) {
+			log.Fatal("No space!")
+		}
+	}
 }
 
 //////////////////////
@@ -143,6 +177,10 @@ func (afs *AppFS) ReadBlockUnsafe(a int) DiskLayer.Block {
 }
 func (afs *AppFS) ReadSuperUnsafe() BlockLayer.SuperBlock {
 	return afs.blockFs.VD.ReadSuperBlock().(BlockLayer.SuperBlock)
+}
+
+func (afs *AppFS) ReadInodeUnsafe(n int) BlockLayer.INode {
+	return afs.blockFs.INodeN2iNode(n)
 }
 
 /*func (afs *AppFS) PrintLogUnsafe() {

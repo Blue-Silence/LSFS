@@ -106,14 +106,11 @@ func Delete(afs *AppFSLayer.AppFS, path string) string {
 	if err != "" {
 		return err
 	}
-	//p := afs.GetFileINfo(hanP.inode)
 	if afs.GetFileINfo(p.inode).FileType == BlockLayer.Folder {
 		fileL := Folder.GetFolderContent(afs, p.inode)
 		for childN, _ := range fileL {
 			Delete(afs, fmt.Sprint(path, "/", childN))
-			//afs.DeleteFile(in)
 		}
-		//return "Not a folder."
 	}
 
 	Folder.DeleteFileToFolder(afs, hanP.inode, p.inode)
@@ -122,7 +119,6 @@ func Delete(afs *AppFSLayer.AppFS, path string) string {
 }
 
 func Write(afs *AppFSLayer.AppFS, h FileHandler, index int, data [Setting.BlockSize]uint8) string {
-	//var dataB DiskLayer.Block = BlockLayer.DataBlock{data}
 	hN := afs.GetFileINfo(h.inode)
 	if !hN.Valid {
 		return "No such file."
@@ -189,4 +185,13 @@ func GetInfo(afs *AppFSLayer.AppFS, h FileHandler) (string, FileInfo) {
 		}
 	}
 	return "", info
+}
+
+func Flush(afs *AppFSLayer.AppFS) {
+	afs.LogCommit()
+}
+
+// ///////////////////////////////////////////
+func GetIUnsafe(h FileHandler) int {
+	return h.inode
 }

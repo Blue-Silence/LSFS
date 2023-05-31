@@ -9,6 +9,8 @@ import (
 	"log"
 )
 
+const LogLenth = 200
+
 type DataBlockMem struct {
 	Inode int
 	Index int
@@ -153,6 +155,11 @@ func (L *FSLog) IsINodeInLog(n int) bool {
 		}
 	}
 	return false
+}
+
+func (L *FSLog) NeedCommit() bool {
+	_, _, dataBlockN, segLen := L.LenInBlock()
+	return segLen > LogLenth/3*2 || dataBlockN > BlockLayer.MaxEditBlcokN/3*2
 }
 
 // ///////////////////////////////////////////////////////////////////////////

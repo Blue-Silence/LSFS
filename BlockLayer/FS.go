@@ -96,3 +96,20 @@ func (fs *BlockFS) GetDataBPointer(inodeN int, index int) int {
 	}
 	return inode.Pointers[index]
 }
+
+func (fs *BlockFS) GetOneSegHeadStartFrom(start int) int {
+	r := -1
+	/*for i := len(fs.superBlock.BitMap) - 1; i > 0; i-- {
+		if fs.superBlock.BitMap[i] && !(fs.superBlock.BitMap[i-1]) {
+			r = i
+			break
+		}
+	}*/
+	for i, v := range fs.superBlock.BitMap {
+		if i >= start && v {
+			r = i
+			break
+		}
+	}
+	return r
+}

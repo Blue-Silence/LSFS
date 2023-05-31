@@ -190,3 +190,8 @@ func GetInfo(afs *AppFSLayer.AppFS, h FileHandler) (string, FileInfo) {
 func Flush(afs *AppFSLayer.AppFS) {
 	afs.LogCommit()
 }
+
+// ///////////////////////////////////////////
+func GetIUnsafe(h FileHandler) int {
+	return h.inode
+}

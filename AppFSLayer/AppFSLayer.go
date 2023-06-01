@@ -15,7 +15,7 @@ type AppFS struct {
 	fLog    LogLayer.FSLog
 }
 
-func (afs *AppFS) FormatFS(VD DiskLayer.VirtualDisk) {
+func (afs *AppFS) FormatFS(VD *DiskLayer.VirtualDisk) {
 	afs.blockFs.VD = VD
 	afs.fLog.InitLog()
 	initINodes := []BlockLayer.INode{createInode(BlockLayer.Folder, "", true, 0)} //Adding root
@@ -49,7 +49,7 @@ func (afs *AppFS) findFreeINode() int {
 
 func (afs *AppFS) LogCommitWithINMap(imapNeeded map[int]BlockLayer.INodeMap) {
 	for _, v := range afs.fLog.ImapNeeded() {
-		imapNeeded[v] = (afs.blockFs.VD.ReadBlock(afs.blockFs.VD.ReadSuperBlock().(BlockLayer.SuperBlock).INodeMaps[v])).(BlockLayer.INodeMap)
+		imapNeeded[v] = BlockLayer.INodeMap{}.FromBlock(afs.blockFs.VD.ReadBlock(BlockLayer.SuperBlock{}.FromBlocks(afs.blockFs.VD.ReadSuperBlock()).INodeMaps[v])).(BlockLayer.INodeMap)
 	} //Get inaodmap needed
 	_, _, _, logSegLen := afs.fLog.LenInBlock()
 	start := afs.blockFs.FindSpaceForSeg(logSegLen)
@@ -64,20 +64,6 @@ func (afs *AppFS) LogCommitWithINMap(imapNeeded map[int]BlockLayer.INodeMap) {
 }
 
 func (afs *AppFS) LogCommit() {
-	/*
-		imapNeeded := make(map[int]BlockLayer.INodeMap)
-		for _, v := range afs.fLog.ImapNeeded() {
-			imapNeeded[v] = (afs.blockFs.VD.ReadBlock(afs.blockFs.VD.ReadSuperBlock().(BlockLayer.SuperBlock).INodeMaps[v])).(BlockLayer.INodeMap)
-		} //Get inaodmap needed
-		_, _, _, logSegLen := afs.fLog.LenInBlock()
-		start := afs.blockFs.FindSpaceForSeg(logSegLen)
-		if start < 0 {
-			//WE will add GC later. TO BE DONE
-			log.Fatal("No space!")
-		}
-		bs, newIMap := afs.fLog.Log2DiskBlock(start, imapNeeded)
-		afs.blockFs.ApplyUpdate(start, bs, newIMap)
-		afs.fLog.InitLog()*/
 	afs.LogCommitWithINMap(make(map[int]BlockLayer.INodeMap))
 }
 
@@ -123,13 +109,13 @@ func (afs *AppFS) WriteFile(inodeN int, index []int, data []DiskLayer.Block) {
 	}
 	ds := []LogLayer.DataBlockMem{}
 	for i, v := range index {
-		ds = append(ds, LogLayer.DataBlockMem{Inode: inodeN, Index: v, Data: data[i]})
+		ds = append(ds, LogLayer.DataBlockMem{Inode: inodeN, Index: v, Data: data[i].ToBlock()})
 	}
 	//afs.fLog.ConstructLog([]BlockLayer.INode{inode}, ds)
 	afs.tryLog([]BlockLayer.INode{inode}, ds)
 }
 
-func (afs *AppFS) ReadFile(inodeN int, index int) DiskLayer.Block {
+func (afs *AppFS) ReadFile(inodeN int, index int) DiskLayer.RealBlock {
 	if afs.isINodeInLog(inodeN) {
 		afs.LogCommit()
 	}
@@ -173,10 +159,11 @@ func (afs *AppFS) tryLog(inodes []BlockLayer.INode, ds []LogLayer.DataBlockMem) 
 /////////////    the function bellow is to get debug info. Don't use these!
 
 func (afs *AppFS) ReadBlockUnsafe(a int) DiskLayer.Block {
-	return afs.blockFs.VD.ReadBlock(a)
+	//return afs.blockFs.VD.ReadBlock(a)
+	return nil
 }
 func (afs *AppFS) ReadSuperUnsafe() BlockLayer.SuperBlock {
-	return afs.blockFs.VD.ReadSuperBlock().(BlockLayer.SuperBlock)
+	return BlockLayer.SuperBlock{}.FromBlocks(afs.blockFs.VD.ReadSuperBlock())
 }
 
 func (afs *AppFS) ReadInodeUnsafe(n int) BlockLayer.INode {

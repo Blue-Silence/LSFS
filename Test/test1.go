@@ -11,7 +11,7 @@ import (
 func Test1() {
 	fmt.Println("Test FS format:")
 	testFS := AppFSLayer.AppFS{}
-	testFS.FormatFS(DiskLayer.VirtualDisk{})
+	testFS.FormatFS(&DiskLayer.VirtualDisk{})
 	printSuperBlock(testFS)
 	printSingleBlock(testFS, 0)
 	printSingleBlock(testFS, 1)
@@ -66,7 +66,7 @@ func testFileWrite(afs AppFSLayer.AppFS) {
 	printSingleBlock(afs, 148)
 	for iD, v := range indexL {
 		testF := true
-		arr := afs.ReadFile(inodeN, v).(BlockLayer.DataBlock).Data
+		arr := BlockLayer.DataBlock{}.FromBlock(afs.ReadFile(inodeN, v)).(BlockLayer.DataBlock).Data
 		for i := 0; i < Setting.BlockSize; i++ {
 			if ds[iD].(BlockLayer.DataBlock).Data[i] != arr[i] {
 				testF = false
@@ -86,7 +86,7 @@ func testFileWrite(afs AppFSLayer.AppFS) {
 
 	for iD, v := range indexL {
 		testF := true
-		arr := afs.ReadFile(inodeN, v).(BlockLayer.DataBlock).Data
+		arr := BlockLayer.DataBlock{}.FromBlock(afs.ReadFile(inodeN, v)).(BlockLayer.DataBlock).Data
 		for i := 0; i < Setting.BlockSize; i++ {
 			if ds[iD].(BlockLayer.DataBlock).Data[i] != arr[i] {
 				testF = false

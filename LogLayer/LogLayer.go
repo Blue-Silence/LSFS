@@ -14,7 +14,7 @@ const LogLenth = 200
 type DataBlockMem struct {
 	Inode int
 	Index int
-	Data  DiskLayer.Block
+	Data  DiskLayer.RealBlock
 }
 
 type FSLog struct {
@@ -84,7 +84,7 @@ func (L *FSLog) Log2DiskBlock(start int, inodeMap map[int]BlockLayer.INodeMap) (
 			//fmt.Println("\nInode:", n.InodeN, "    dataBlock num:", len(L.data[n.InodeN]))
 
 			for _, dataB := range L.data[n.InodeN] {
-				dataBlock = append(dataBlock, dataB.Data)
+				dataBlock = append(dataBlock, BlockLayer.DataBlock{dataB.Data})
 				segHead.DataBlockSummary[len(dataBlock)-1] = BlockLayer.FileIndexInfo{n.InodeN, dataB.Index}
 				n.Pointers[dataB.Index] = start + 1 + segHead.InodeMapN + segHead.InodeBlockN + len(dataBlock) - 1
 				L.inodeByImap[iv][in] = n

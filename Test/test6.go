@@ -13,7 +13,7 @@ import (
 
 func Test6() {
 	testFS := AppFSLayer.AppFS{}
-	testFS.FormatFS(DiskLayer.VirtualDisk{})
+	testFS.FormatFS(&DiskLayer.VirtualDisk{})
 
 	_, hRoot := File.GetHandler(&testFS, "/")
 	_, hF1 := Helper.CreateByPath(&testFS, "/Folder1", BlockLayer.Folder)

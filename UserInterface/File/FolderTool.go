@@ -12,30 +12,30 @@ const (
 	MaxNameLen            = 256
 )
 
-type folderBlock struct {
-	fileEntrys [MaxFilePerFolderBlock]fileEntry
+type FolderBlock struct {
+	FileEntrys [MaxFilePerFolderBlock]FileEntry
 } // 1 per block
-type fileEntry struct {
-	name  string
-	inode int
-	valid bool
+type FileEntry struct {
+	Name  string
+	Inode int
+	Valid bool
 }
 
-func (s folderBlock) CanBeBlock() {
+func (s FolderBlock) CanBeBlock() {
 }
 
-func concatFolder(afs *AppFSLayer.AppFS, folderIN int) []fileEntry {
+func concatFolder(afs *AppFSLayer.AppFS, folderIN int) []FileEntry {
 	folderINode := afs.GetFileINfo(folderIN)
-	re := []fileEntry{}
+	re := []FileEntry{}
 	//maxI := 0
 	for i, v := range folderINode.Pointers {
 		if v >= 0 {
 			//maxI = i
 			////fmt.Println("Is it ok?")
-			co := afs.ReadFile(folderIN, i).(folderBlock).fileEntrys
+			co := FolderBlock{}.FromBlock(afs.ReadFile(folderIN, i)).(FolderBlock).FileEntrys
 			////fmt.Println("Ok!")
 			for _, v := range co {
-				if v.valid {
+				if v.Valid {
 					re = append(re, v)
 				}
 			}
@@ -46,12 +46,12 @@ func concatFolder(afs *AppFSLayer.AppFS, folderIN int) []fileEntry {
 	return re
 }
 
-func rebuildFolder(fEsO []fileEntry) ([]int, []DiskLayer.Block) {
+func rebuildFolder(fEsO []FileEntry) ([]int, []DiskLayer.Block) {
 	returnIndex := []int{}
 	returnBlock := []DiskLayer.Block{}
-	fEs := []fileEntry{}
+	fEs := []FileEntry{}
 	for _, v := range fEsO {
-		if v.valid {
+		if v.Valid {
 			fEs = append(fEs, v)
 		}
 	}
@@ -60,8 +60,8 @@ func rebuildFolder(fEsO []fileEntry) ([]int, []DiskLayer.Block) {
 		if len(fEs) > 0 {
 			returnIndex = append(returnIndex, i)
 			i++
-			fEB := folderBlock{}
-			copy(fEB.fileEntrys[:], fEs)
+			fEB := FolderBlock{}
+			copy(fEB.FileEntrys[:], fEs)
 			returnBlock = append(returnBlock, fEB)
 
 			if len(fEs) > MaxFilePerFolderBlock {
@@ -80,7 +80,7 @@ func addFileToFolder(afs *AppFSLayer.AppFS, folderIN int, fileIN int) {
 	fEs := concatFolder(afs, folderIN)
 	fileINode := afs.GetFileINfo(fileIN)
 	folderINode := afs.GetFileINfo(folderIN)
-	fE := fileEntry{name: fileINode.Name, inode: fileINode.InodeN, valid: true}
+	fE := FileEntry{Name: fileINode.Name, Inode: fileINode.InodeN, Valid: true}
 	//fmt.Println("Before adding:", fEs)
 	//fEs
 	fEs = append(fEs, fE)
@@ -99,9 +99,9 @@ func addFileToFolder(afs *AppFSLayer.AppFS, folderIN int, fileIN int) {
 func deleteFileToFolder(afs *AppFSLayer.AppFS, folderIN int, fileIN int) {
 	fEs := concatFolder(afs, folderIN)
 	folderINode := afs.GetFileINfo(folderIN)
-	newFe := []fileEntry{}
+	newFe := []FileEntry{}
 	for _, v := range fEs {
-		if v.inode != fileIN {
+		if v.Inode != fileIN {
 			newFe = append(newFe, v)
 		}
 	}
@@ -122,8 +122,8 @@ func deleteFileToFolder(afs *AppFSLayer.AppFS, folderIN int, fileIN int) {
 func getFolderContentH(afs *AppFSLayer.AppFS, inode int) []FileInfo {
 	fileLt := []FileInfo{}
 	for _, v := range concatFolder(afs, inode) {
-		if v.valid {
-			_, h := GetInfo(afs, FileHandler{v.inode})
+		if v.Valid {
+			_, h := GetInfo(afs, FileHandler{v.Inode})
 			fileLt = append(fileLt, h)
 		}
 	}
@@ -150,13 +150,13 @@ func ConcatFolderUnsafe(afs *AppFSLayer.AppFS, folderIN int) []folderBlock2 {
 		if v > 0 {
 			//maxI = i
 			////fmt.Println("Is it ok?")
-			co := afs.ReadFile(folderIN, i).(folderBlock).fileEntrys
+			co := FolderBlock{}.FromBlock(afs.ReadFile(folderIN, i)).(FolderBlock).FileEntrys
 			////fmt.Println("Ok!")
 			for x, v := range co {
 
-				re[i].F[x].Name = v.name
-				re[i].F[x].Inode = v.inode
-				re[i].F[x].Valid = v.valid
+				re[i].F[x].Name = v.Name
+				re[i].F[x].Inode = v.Inode
+				re[i].F[x].Valid = v.Valid
 			}
 		}
 		//re = append(re, co[:]...)

@@ -8,10 +8,10 @@ import (
 
 type BlockFS struct {
 	superBlock SuperBlock
-	VD         DiskLayer.VirtualDisk
+	VD         *DiskLayer.VirtualDisk
 } //This is the file system data structure in memory
 
-func (fs *BlockFS) ReadFile(inodeN int, index int) DiskLayer.Block {
+func (fs *BlockFS) ReadFile(inodeN int, index int) DiskLayer.RealBlock {
 	inode := fs.INodeN2iNode(inodeN)
 	if inode.Valid == false {
 		log.Fatal("No Valid inode found for:", inodeN)
@@ -22,13 +22,13 @@ func (fs *BlockFS) ReadFile(inodeN int, index int) DiskLayer.Block {
 func (fs *BlockFS) INodeN2iNodeAndPointer(n int) (INode, int) {
 	// return Inode itself and the pointer to its block
 	iNodemapN := fs.superBlock.INodeMaps[n/Setting.InodePerInodemapBlock]
-	var iNodemap INodeMap = (fs.VD.ReadBlock(iNodemapN)).(INodeMap)
+	var iNodemap INodeMap = (INodeMap{}.FromBlock((fs.VD.ReadBlock(iNodemapN)))).(INodeMap)
 	iNodeBlockN := iNodemap.InodeMapPart[n-iNodemap.Offset]
 	if iNodemap.Offset != n/Setting.InodePerInodemapBlock {
 		log.Fatal("Warning!Mistmatch!")
 	}
 
-	var nB INodeBlock = (fs.VD.ReadBlock(iNodeBlockN)).(INodeBlock)
+	var nB INodeBlock = INodeBlock{}.FromBlock((fs.VD.ReadBlock(iNodeBlockN))).(INodeBlock)
 	for _, v := range nB.NodeArr {
 		if v.Valid && v.InodeN == n {
 			return v, iNodeBlockN
@@ -69,7 +69,7 @@ func (fs *BlockFS) ApplyUpdate(start int, bs []DiskLayer.Block, newIMapLocation 
 		super.BitMap[start+i] = true
 	}
 	fs.superBlock = super
-	fs.VD.WriteSuperBlock(super)
+	fs.VD.WriteSuperBlock(super.ToBlocks())
 }
 
 func (fs *BlockFS) ReclaimBlock(start int, len int) {
@@ -78,7 +78,7 @@ func (fs *BlockFS) ReclaimBlock(start int, len int) {
 		super.BitMap[start+i] = true
 	}
 	fs.superBlock = super
-	fs.VD.WriteSuperBlock(super)
+	fs.VD.WriteSuperBlock(super.ToBlocks())
 }
 
 func (fs *BlockFS) GetIMapPointer(index int) int {

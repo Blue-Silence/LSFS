@@ -5,7 +5,6 @@ import (
 	"LSF/DiskLayer"
 	"LSF/LogLayer"
 	"LSF/Setting"
-	"fmt"
 	"log"
 	//"fmt"
 )
@@ -45,9 +44,9 @@ func (afs *AppFS) GC(maxSegCount int) int {
 	imapFinal := make(map[int]BlockLayer.INodeMap)
 	count := 0
 	for ; ; count++ {
-		fmt.Println("OK???????")
+		//fmt.Println("OK???????")
 		if maxSegCount > 0 && count > maxSegCount {
-			fmt.Println("OKKKKKK")
+			//fmt.Println("OKKKKKK")
 			break
 		}
 		if afs.fLog.NeedCommit() {
@@ -56,14 +55,14 @@ func (afs *AppFS) GC(maxSegCount int) int {
 		}
 		hP := afs.blockFs.GetOneSegHeadStartFrom(scanStart)
 		if hP < 0 {
-			fmt.Println("BREAKING!")
+			//fmt.Println("BREAKING!")
 			break
 		}
-		fmt.Println("hP:", hP)
+		//fmt.Println("hP:", hP)
 
-		segHead := afs.blockFs.VD.ReadBlock(hP).(BlockLayer.SegHead)
+		segHead := BlockLayer.SegHead{}.FromBlock(afs.blockFs.VD.ReadBlock(hP)).(BlockLayer.SegHead)
 		segLen := LogLayer.SegLenFromHead(segHead)
-		segBs := []DiskLayer.Block{}
+		segBs := []DiskLayer.RealBlock{}
 		scanStart = hP + segLen
 		for i := 0; i < segLen; i++ {
 			segBs = append(segBs, afs.blockFs.VD.ReadBlock(hP+i))
@@ -73,11 +72,11 @@ func (afs *AppFS) GC(maxSegCount int) int {
 		afs.blockFs.ReclaimBlock(hP, segLen)
 
 		imapFinal = inmapMerge(imapFinal, inodeM)
-		fmt.Println("imapFinal:")
-		fmt.Println(imapFinal)
+		//fmt.Println("imapFinal:")
+		//fmt.Println(imapFinal)
 		conSuccess := afs.fLog.ConstructLog(inodes, dataBs)
 		if !conSuccess {
-			fmt.Println("AOW!!!!!!")
+			//fmt.Println("AOW!!!!!!")
 			afs.LogCommitWithINMap(imapFinal)
 			imapFinal = make(map[int]BlockLayer.INodeMap)
 			conSuccess = afs.fLog.ConstructLog(inodes, dataBs)

@@ -18,9 +18,9 @@ type AppFS struct {
 func (afs *AppFS) FormatFS(VD DiskLayer.VirtualDisk) {
 	afs.blockFs.VD = VD
 	afs.fLog.InitLog()
-	initINodes := []BlockLayer.INode{createInode(BlockLayer.Folder, "", true, 0)} //Adding root
+	initINodes := []BlockLayer.INode{createInode(BlockLayer.Folder, "", true, 0, 0, true)} //Adding root
 	for i := 1; i < Setting.MaxInodeN; i++ {
-		initINodes = append(initINodes, createInode(BlockLayer.NormalFile, "", false, i)) //Adding invalid inodes to init imap
+		initINodes = append(initINodes, createInode(BlockLayer.NormalFile, "", false, i, 0, true)) //Adding invalid inodes to init imap
 	}
 	afs.fLog.ConstructLog(initINodes, []LogLayer.DataBlockMem{})
 	_, _, _, initSegLen := afs.fLog.LenInBlock()
@@ -30,8 +30,9 @@ func (afs *AppFS) FormatFS(VD DiskLayer.VirtualDisk) {
 	afs.fLog.InitLog()
 }
 
-func createInode(fType int, name string, valid bool, inodeN int) BlockLayer.INode {
-	in := BlockLayer.INode{Valid: valid, FileType: fType, Name: name, InodeN: inodeN}
+func createInode(fType int, name string, valid bool, inodeN int, level int, isRoot bool) BlockLayer.INode {
+	// isRoot and level is used  to ad support for inode tree.
+	in := BlockLayer.INode{Valid: valid, FileType: fType, Name: name, InodeN: inodeN, PointerToNextINode: -1, CurrentLevel: level, IsRoot: true}
 	for i, _ := range in.Pointers {
 		in.Pointers[i] = -1 //Init to invalid pointers
 	}
@@ -95,7 +96,7 @@ func (afs *AppFS) CreateFile(fType int, name string) int {
 		//fmt.Println("Oh?")
 		afs.fLog.ConstructLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN)}, []LogLayer.DataBlockMem{})
 	}*/
-	afs.tryLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN)}, []LogLayer.DataBlockMem{})
+	afs.tryLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN, 0, true)}, []LogLayer.DataBlockMem{})
 	return newInodeN
 }
 

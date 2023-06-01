@@ -45,6 +45,10 @@ type INode struct {
 	Name     string
 	FileType int
 	Pointers [10]int
+
+	PointerToNextINode int
+	CurrentLevel       int
+	IsRoot             bool
 }
 
 type INodeBlock struct {

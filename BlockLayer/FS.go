@@ -8,7 +8,7 @@ import (
 
 type BlockFS struct {
 	superBlock SuperBlock
-	VD         *DiskLayer.VirtualDisk
+	VD         DiskLayer.VirtualDisk
 } //This is the file system data structure in memory
 
 func (fs *BlockFS) ReadFile(inodeN int, index int) DiskLayer.RealBlock {

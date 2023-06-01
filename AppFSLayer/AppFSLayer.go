@@ -15,7 +15,7 @@ type AppFS struct {
 	fLog    LogLayer.FSLog
 }
 
-func (afs *AppFS) FormatFS(VD *DiskLayer.VirtualDisk) {
+func (afs *AppFS) FormatFS(VD DiskLayer.VirtualDisk) {
 	afs.blockFs.VD = VD
 	afs.fLog.InitLog()
 	initINodes := []BlockLayer.INode{createInode(BlockLayer.Folder, "", true, 0)} //Adding root

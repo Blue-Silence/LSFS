@@ -4,6 +4,7 @@ import (
 	"LSF/AppFSLayer"
 	"LSF/BlockLayer"
 	"LSF/DiskLayer"
+	"LSF/MemoryDisk"
 	"LSF/Setting"
 	"fmt"
 )
@@ -11,7 +12,7 @@ import (
 func Test1() {
 	fmt.Println("Test FS format:")
 	testFS := AppFSLayer.AppFS{}
-	testFS.FormatFS(&DiskLayer.VirtualDisk{})
+	testFS.FormatFS(&MemoryDisk.RamDisk{})
 	printSuperBlock(testFS)
 	printSingleBlock(testFS, 0)
 	printSingleBlock(testFS, 1)

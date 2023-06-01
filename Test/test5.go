@@ -3,7 +3,7 @@ package Test
 import (
 	"LSF/AppFSLayer"
 	"LSF/BlockLayer"
-	"LSF/DiskLayer"
+	"LSF/MemoryDisk"
 	"LSF/Setting"
 	"LSF/UserInterface/File"
 	"LSF/UserInterface/Helper"
@@ -13,7 +13,7 @@ import (
 
 func Test5() {
 	testFS := AppFSLayer.AppFS{}
-	testFS.FormatFS(&DiskLayer.VirtualDisk{})
+	testFS.FormatFS(&MemoryDisk.RamDisk{})
 
 	_, hRoot := File.GetHandler(&testFS, "/")
 	_, hF1 := Helper.CreateByPath(&testFS, "/Folder1", BlockLayer.Folder)

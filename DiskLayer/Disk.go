@@ -5,12 +5,11 @@ import (
 	"log"
 )
 
-type VirtualDisk struct {
-	//blocks     [Setting.BlockN]Block
-	blocks [Setting.BlockN]RealBlock
-	//superBlock Block
-	//superBlock RealBlock
-	superBlock []RealBlock
+type VirtualDisk interface {
+	ReadBlock(index int) RealBlock
+	WriteBlock(index int, b Block)
+	ReadSuperBlock() []RealBlock
+	WriteSuperBlock(b []RealBlock)
 }
 
 type Block interface {
@@ -45,26 +44,4 @@ func BytesToBlocks(d []byte) []RealBlock {
 
 func BlockToBytes(b RealBlock) []byte {
 	return b[:]
-}
-
-func (d *VirtualDisk) ReadBlock(index int) RealBlock {
-	if index < 0 || index > len(d.blocks) {
-		log.Fatal("Invalid disk read access at ", index)
-	}
-	return d.blocks[index]
-}
-
-func (d *VirtualDisk) WriteBlock(index int, b Block) {
-	if index < 0 || index > len(d.blocks) {
-		log.Fatal("Invalid disk write access at ", index)
-	}
-	d.blocks[index] = b.ToBlock()
-}
-
-func (d *VirtualDisk) ReadSuperBlock() []RealBlock {
-	return d.superBlock
-}
-
-func (d *VirtualDisk) WriteSuperBlock(b []RealBlock) {
-	d.superBlock = b
 }

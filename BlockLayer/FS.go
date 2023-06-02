@@ -25,9 +25,11 @@ func (fs *BlockFS) INodeN2iNodeAndPointer(n int) (INode, int) {
 		return INode{Valid: false}, -1
 	}
 	iNodemapN := fs.superBlock.INodeMaps[n/Setting.InodePerInodemapBlock]
+	//fmt.Println(fs.superBlock.INodeMaps)
 	var iNodemap INodeMap = (INodeMap{}.FromBlock((fs.VD.ReadBlock(iNodemapN)))).(INodeMap)
-	iNodeBlockN := iNodemap.InodeMapPart[n-iNodemap.Offset]
-	if iNodemap.Offset != n/Setting.InodePerInodemapBlock {
+	//fmt.Println("n:", n, "  offset:", iNodemap.Index)
+	iNodeBlockN := iNodemap.InodeMapPart[n-iNodemap.Index]
+	if iNodemap.Index != n/Setting.InodePerInodemapBlock {
 		log.Fatal("Warning!Mistmatch!")
 	}
 
@@ -115,4 +117,18 @@ func (fs *BlockFS) GetOneSegHeadStartFrom(start int) int {
 		}
 	}
 	return r
+}
+
+func (fs *BlockFS) Init(VD DiskLayer.VirtualDisk) {
+	fs.VD = VD
+	for i, _ := range fs.superBlock.INodeMaps {
+		fs.superBlock.INodeMaps[i] = -1
+	}
+	fs.VD.WriteSuperBlock(fs.superBlock.ToBlocks())
+}
+
+/////////////////////////////////////////////////
+
+func (fs *BlockFS) SuperBlockUNsafe() SuperBlock {
+	return fs.superBlock
 }

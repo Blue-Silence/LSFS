@@ -30,6 +30,7 @@ func (s SuperBlock) FromBlocks(ds []DiskLayer.RealBlock) SuperBlock {
 	dec := gob.NewDecoder(bufP)
 	err := dec.Decode(&s)
 	if err != nil {
+		debug.PrintStack()
 		log.Fatal("decode error 1:", err)
 	}
 	return s
@@ -77,6 +78,7 @@ func (s INodeMap) FromBlock(d DiskLayer.RealBlock) DiskLayer.Block {
 	dec := gob.NewDecoder(bufP)
 	err := dec.Decode(&s)
 	if err != nil {
+		debug.PrintStack()
 		log.Fatal("decode error 1:", err)
 	}
 	return s
@@ -100,6 +102,7 @@ func (s INodeBlock) FromBlock(d DiskLayer.RealBlock) DiskLayer.Block {
 	dec := gob.NewDecoder(bufP)
 	err := dec.Decode(&s)
 	if err != nil {
+		debug.PrintStack()
 		log.Fatal("decode error 1:", err)
 	}
 	return s

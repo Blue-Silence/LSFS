@@ -19,7 +19,7 @@ type SuperBlock struct {
 } //store at separate location.
 
 type INodeMap struct {
-	Offset       int
+	Index        int
 	InodeMapPart [Setting.InodePerInodemapBlock]int
 } // 1 per block
 

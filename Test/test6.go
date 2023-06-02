@@ -40,13 +40,13 @@ func Test6() {
 	fmt.Println(Helper.DeleteByPath(&testFS, "/Folder1/F11"))
 	testFS.GC(-1)
 	//fmt.Println(testFS.ReadInodeUnsafe(File.GetIUnsafe(hF1)))
-	printSingleBlock(testFS, 254)
+	/*printSingleBlock(testFS, 254)
 	printSingleBlock(testFS, 255)
 	printSingleBlock(testFS, 256)
 	printSingleBlock(testFS, 257)
 	printSingleBlock(testFS, 258)
 	printSingleBlock(testFS, 259)
-	printSingleBlock(testFS, 260)
+	printSingleBlock(testFS, 260)*/
 
 	fmt.Println(File.GetFolderContent(&testFS, hF1))
 	fmt.Println(File.GetFolderContent(&testFS, hF2))

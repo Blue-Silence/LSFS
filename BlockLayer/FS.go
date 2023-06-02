@@ -3,6 +3,7 @@ package BlockLayer
 import (
 	"LSF/DiskLayer"
 	"LSF/Setting"
+	"fmt"
 	"log"
 )
 
@@ -16,6 +17,7 @@ func (fs *BlockFS) ReadFile(inodeN int, index int) DiskLayer.Block {
 	if inode.Valid == false {
 		log.Fatal("No Valid inode found for:", inodeN)
 	}
+	fmt.Println("Inode:", inode, "   index:", index)
 	return fs.VD.ReadBlock(inode.Pointers[index])
 }
 
@@ -23,11 +25,12 @@ func (fs *BlockFS) INodeN2iNodeAndPointer(n int) (INode, int) {
 	// return Inode itself and the pointer to its block
 	iNodemapN := fs.superBlock.INodeMaps[n/Setting.InodePerInodemapBlock]
 	var iNodemap INodeMap = (fs.VD.ReadBlock(iNodemapN)).(INodeMap)
-	iNodeBlockN := iNodemap.InodeMapPart[n-iNodemap.Offset]
-	if iNodemap.Offset != n/Setting.InodePerInodemapBlock {
+	iNodeBlockN := iNodemap.InodeMapPart[n%Setting.InodePerInodemapBlock]
+	if iNodemap.Index != n/Setting.InodePerInodemapBlock {
 		log.Fatal("Warning!Mistmatch!")
 	}
 
+	fmt.Println("Block addr:", iNodeBlockN)
 	var nB INodeBlock = (fs.VD.ReadBlock(iNodeBlockN)).(INodeBlock)
 	for _, v := range nB.NodeArr {
 		if v.Valid && v.InodeN == n {

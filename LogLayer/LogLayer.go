@@ -4,6 +4,8 @@ import (
 	"LSF/BlockLayer"
 	"LSF/DiskLayer"
 	"LSF/Setting"
+	"fmt"
+	"runtime/debug"
 
 	//"fmt"
 	"log"
@@ -44,6 +46,21 @@ func (L *FSLog) ConstructLog(inodes []BlockLayer.INode, ds []DataBlockMem) bool 
 	}
 	//_, _, dataBlockN2, _ := L.LenInBlock()
 	//fmt.Println("AAA DataBlockN:", dataBlockN, "   new:", dataBlockN2)
+	for _, s := range L.inodeByImap {
+		for _, v := range s {
+			c := 0
+			for _, v1 := range s {
+				if v1.InodeN == v.InodeN {
+					c++
+				}
+			}
+			if c != 1 {
+				fmt.Println("\n\n\n\n\n")
+				(debug.PrintStack())
+				log.Fatal("Multiplie same inode:", v)
+			}
+		}
+	}
 	return true
 }
 
@@ -73,12 +90,24 @@ func (L *FSLog) LenInBlock() (int, int, int, int) {
 
 func (L *FSLog) Log2DiskBlock(start int, inodeMap map[int]BlockLayer.INodeMap) ([]DiskLayer.Block, map[int]int) {
 	var segHead BlockLayer.SegHead
+	//allLen := 0
 	segHead.InodeMapN, segHead.InodeBlockN, segHead.DataBlockN, _ = L.LenInBlock()
 
+	inodeMapC := make(map[int]BlockLayer.INodeMap)
+	for i, v := range inodeMap {
+		inodeMapC[i] = v
+	}
+	for _, v := range L.inodeByImap {
+		for _, n := range v {
+			inodeMapC[n.InodeN/Setting.InodePerInodemapBlock] = BlockLayer.INodeMap{}
+		}
+	}
+	segHead.InodeMapN = 0
+	for _, _ = range inodeMapC {
+		segHead.InodeMapN++
+	} //This way we will get the real length of InodeMap block
+
 	var dataBlock []DiskLayer.Block
-
-	//fmt.Println("segHead.DataBlockN:", segHead.DataBlockN)
-
 	for iv, v := range L.inodeByImap {
 		for in, n := range v {
 			//fmt.Println("\nInode:", n.InodeN, "    dataBlock num:", len(L.data[n.InodeN]))
@@ -105,11 +134,12 @@ func (L *FSLog) Log2DiskBlock(start int, inodeMap map[int]BlockLayer.INodeMap) (
 			nodeCount++
 			//and also do something to change imap next (TO BE DONE)
 			iPart := inodeMap[n.InodeN/Setting.InodePerInodemapBlock]
-			iPart.Offset = n.InodeN / Setting.InodePerInodemapBlock
+			iPart.Index = n.InodeN / Setting.InodePerInodemapBlock
 			(iPart.InodeMapPart)[n.InodeN%Setting.InodePerInodemapBlock] = len(nodesByBlock) - 1 + start + 1 + segHead.InodeMapN
 			inodeMap[n.InodeN/Setting.InodePerInodemapBlock] = iPart
 		}
 	}
+
 	//_, InodeBlockN233, _, _ := L.LenInBlock()
 	if len(nodesByBlock) != segHead.InodeBlockN {
 
@@ -124,7 +154,7 @@ func (L *FSLog) Log2DiskBlock(start int, inodeMap map[int]BlockLayer.INodeMap) (
 	returnMap := make(map[int]int)
 	for _, v := range inodeMap {
 		imapBlock = append(imapBlock, v)
-		returnMap[v.Offset/Setting.InodePerInodemapBlock] = start + 1 + len(imapBlock) - 1
+		returnMap[v.Index] = start + 1 + len(imapBlock) - 1
 	}
 
 	re := []DiskLayer.Block{segHead}
@@ -137,6 +167,15 @@ func (L *FSLog) Log2DiskBlock(start int, inodeMap map[int]BlockLayer.INodeMap) (
 	for _, v := range dataBlock {
 		re = append(re, v)
 	}
+	/*if len(re) != allLen || allLen != segHead.DataBlockN+segHead.InodeBlockN+segHead.InodeMapN+1 {
+		debug.PrintStack()
+		//imapC := 0
+		//for _,_ = range
+		imapL, _, _, allLen2 := L.LenInBlock()
+		log.Println("allLen2:", allLen2, "   allLen", allLen, "   len(re):", len(re))
+		log.Println("imapBlock len:", len(imapBlock), "  imapL:", imapL)
+		log.Fatal("Warning!!Segment  length mismatch.")
+	}*/
 	return re, returnMap
 }
 
@@ -164,8 +203,7 @@ func (L *FSLog) NeedCommit() bool {
 
 // ///////////////////////////////////////////////////////////////////////////
 // ///// FOR TEST
-/*
+
 func (L *FSLog) PrintLog() {
-	fmt.Println(L)
+	fmt.Println(L.inodeByImap)
 }
-*/

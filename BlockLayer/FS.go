@@ -21,6 +21,9 @@ func (fs *BlockFS) ReadFile(inodeN int, index int) DiskLayer.RealBlock {
 
 func (fs *BlockFS) INodeN2iNodeAndPointer(n int) (INode, int) {
 	// return Inode itself and the pointer to its block
+	if n < 0 {
+		return INode{Valid: false}, -1
+	}
 	iNodemapN := fs.superBlock.INodeMaps[n/Setting.InodePerInodemapBlock]
 	var iNodemap INodeMap = (INodeMap{}.FromBlock((fs.VD.ReadBlock(iNodemapN)))).(INodeMap)
 	iNodeBlockN := iNodemap.InodeMapPart[n-iNodemap.Offset]

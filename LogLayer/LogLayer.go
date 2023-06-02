@@ -4,6 +4,7 @@ import (
 	"LSF/BlockLayer"
 	"LSF/DiskLayer"
 	"LSF/Setting"
+	"fmt"
 
 	//"fmt"
 	"log"
@@ -164,8 +165,14 @@ func (L *FSLog) NeedCommit() bool {
 
 // ///////////////////////////////////////////////////////////////////////////
 // ///// FOR TEST
-/*
+
 func (L *FSLog) PrintLog() {
-	fmt.Println(L)
+	//fmt.Print(L.Log2DiskBlock(0, make(map[int]BlockLayer.INodeMap)))
+	fmt.Println(L.inodeByImap)
+	for _, v := range L.data {
+		for _, v1 := range v {
+			fmt.Println("INode:", v1.Inode, "   Index:", v1.Index, "  Data:...")
+		}
+	}
+
 }
-*/

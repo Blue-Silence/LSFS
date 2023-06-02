@@ -3,6 +3,8 @@ package AppFSLayer
 import (
 	"LSF/BlockLayer"
 	"LSF/LogLayer"
+
+	//"fmt"
 	"log"
 )
 
@@ -17,7 +19,10 @@ func (afs *AppFS) createFileWithSpecINodeType(fType int, name string, level int,
 	if newInodeN == -1 {
 		log.Fatal("No inode number available.")
 	}
-	afs.tryLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN, level, isRoot)}, []LogLayer.DataBlockMem{})
+	in := createInode(fType, name, true, newInodeN)
+	in.CurrentLevel = level
+	in.IsRoot = isRoot
+	afs.tryLog([]BlockLayer.INode{in}, []LogLayer.DataBlockMem{})
 	return newInodeN
 }
 
@@ -35,13 +40,13 @@ func (afs *AppFS) findBlockInTree(allocateWhenNeed bool, inodeN int, index int, 
 	inode := afs.GetFileINfo(inodeN)
 	if !inode.Valid {
 		if allocateWhenNeed {
-			inodeN := afs.createFileWithSpecINodeType(BlockLayer.NormalFile, "//", level, true)
+			inodeN = afs.createFileWithSpecINodeType(BlockLayer.NormalFile, "//", level, true)
 			inode = afs.GetFileINfo(inodeN)
 		} else {
 			return false, []InodeTrace{}, []InodeTrace{}, -1
 		}
 	}
-
+	//fmt.Println("inode:", inode, "   index:", index)
 	if index < blockInInodeLevel(level) {
 		b, trs, _ := afs.findBlockInTreeLeaf(allocateWhenNeed, inodeN, index, level)
 		if b {
@@ -63,14 +68,17 @@ func (afs *AppFS) findBlockInTreeLeaf(allocateWhenNeed bool, inodeN int, index i
 	inode := afs.GetFileINfo(inodeN)
 	if !inode.Valid {
 		if allocateWhenNeed {
-			inodeN := afs.createFileWithSpecINodeType(BlockLayer.NormalFile, "///////", level, false)
+			inodeN = afs.createFileWithSpecINodeType(BlockLayer.NormalFile, "///////", level, false)
 			inode = afs.GetFileINfo(inodeN)
 		} else {
+			//fmt.Println("WHAT???")
 			return false, []InodeTrace{}, -1
 		}
 	}
+	//fmt.Println("inode leaf:", inode, "   index:", index)
 	if inode.CurrentLevel == 0 {
 		//if allocateWhenNeed && inode.Pointers[index] <0 {}
+		//fmt.Println("AAAAA")
 		return true, []InodeTrace{InodeTrace{inode, index}}, inode.InodeN
 	} else {
 		offset := index / blockInInodeLevel(level-1)
@@ -81,7 +89,9 @@ func (afs *AppFS) findBlockInTreeLeaf(allocateWhenNeed bool, inodeN int, index i
 		if inode.Pointers[offset] != np {
 			inode.Pointers[offset] = np
 			afs.fLog.ConstructLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
+			//fmt.Println("BB1111B1B1")
 		}
+		//fmt.Println("BBBBB:", inode, "  inodeN:", inodeN)
 		return b, append([]InodeTrace{trace}, trs...), inode.InodeN
 	}
 }

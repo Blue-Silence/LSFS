@@ -7,6 +7,9 @@ import (
 	"LSF/Setting"
 
 	//"fmt"
+	"runtime/debug"
+
+	//"fmt"
 	"log"
 )
 
@@ -35,6 +38,9 @@ func createInode(fType int, name string, valid bool, inodeN int) BlockLayer.INod
 	for i, _ := range in.Pointers {
 		in.Pointers[i] = -1 //Init to invalid pointers
 	}
+	in.IsRoot = true
+	in.PointerToNextINode = -1
+	in.CurrentLevel = 0
 	return in
 }
 
@@ -100,26 +106,48 @@ func (afs *AppFS) CreateFile(fType int, name string) int {
 }
 
 func (afs *AppFS) WriteFile(inodeN int, index []int, data []DiskLayer.Block) {
-	if afs.isINodeInLog(inodeN) {
-		afs.LogCommit()
-	}
-	inode := afs.blockFs.INodeN2iNode(inodeN)
+	inode := afs.GetFileINfo(inodeN)
 	if inode.Valid == false {
 		log.Fatal("Invalid write to non-exsistent inode:", inodeN, "  get inode:", inode)
 	}
-	ds := []LogLayer.DataBlockMem{}
-	for i, v := range index {
-		ds = append(ds, LogLayer.DataBlockMem{Inode: inodeN, Index: v, Data: data[i].ToBlock()})
+	for i, ind := range index {
+		_, _, traces := afs.findBlockFromStart(true, inodeN, ind)
+		inode := afs.GetFileINfo(traces[len(traces)-1].inode.InodeN)
+		//fmt.Println("\n\nWrite at :", inode, " \ndata to write:", "Inode: ", inode.InodeN, "Index: ", traces[len(traces)-1].offset, "\n\n")
+		afs.LogCommit() //
+		afs.fLog.PrintLog()
+		afs.tryLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{LogLayer.DataBlockMem{Inode: inode.InodeN, Index: traces[len(traces)-1].offset, Data: data[i].ToBlock()}})
+		afs.fLog.PrintLog()
+		afs.LogCommit() //
+		//fmt.Println("\n\nAfter write:", afs.GetFileINfo(inode.InodeN), " \n\n")
 	}
+	//ds := []LogLayer.DataBlockMem{}
+	//for i, v := range index {
+	//	ds = append(ds, LogLayer.DataBlockMem{Inode: inodeN, Index: v, Data: data[i].ToBlock()})
+	//}
+
 	//afs.fLog.ConstructLog([]BlockLayer.INode{inode}, ds)
-	afs.tryLog([]BlockLayer.INode{inode}, ds)
+
+	//afs.tryLog([]BlockLayer.INode{inode}, ds)
 }
 
 func (afs *AppFS) ReadFile(inodeN int, index int) DiskLayer.RealBlock {
-	if afs.isINodeInLog(inodeN) {
+	/*if afs.isINodeInLog(inodeN) {
 		afs.LogCommit()
 	}
-	return afs.blockFs.ReadFile(inodeN, index)
+	return afs.blockFs.ReadFile(inodeN, index)*/
+
+	b, rtrs, traces := afs.findBlockFromStart(false, inodeN, index)
+	if b {
+		inode := afs.GetFileINfo(traces[len(traces)-1].inode.InodeN)
+		//fmt.Println("trace:", traces)
+		return afs.blockFs.ReadFile(inode.InodeN, traces[len(traces)-1].offset)
+	} else {
+		debug.PrintStack()
+		log.Fatal("Empty!:", inodeN, "INdex:", index, traces, rtrs)
+		var e DiskLayer.RealBlock
+		return e
+	}
 }
 
 func (afs *AppFS) DeleteFile(inodeN int) {
@@ -132,10 +160,7 @@ func (afs *AppFS) DeleteFile(inodeN int) {
 }
 
 func (afs *AppFS) DeleteBlockInFile(inodeN int, index []int) {
-	if afs.isINodeInLog(inodeN) {
-		afs.LogCommit()
-	}
-	inode := afs.blockFs.INodeN2iNode(inodeN)
+	inode := afs.GetFileINfo(inodeN)
 	for _, v := range index {
 		inode.Pointers[v] = -1
 	}
@@ -167,7 +192,7 @@ func (afs *AppFS) ReadSuperUnsafe() BlockLayer.SuperBlock {
 }
 
 func (afs *AppFS) ReadInodeUnsafe(n int) BlockLayer.INode {
-	return afs.blockFs.INodeN2iNode(n)
+	return afs.GetFileINfo(n)
 }
 
 /*func (afs *AppFS) PrintLogUnsafe() {

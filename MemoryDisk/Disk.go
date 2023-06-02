@@ -4,6 +4,7 @@ import (
 	"LSF/DiskLayer"
 	"LSF/Setting"
 	"log"
+	"runtime/debug"
 )
 
 type RamDisk struct {
@@ -16,6 +17,7 @@ type RamDisk struct {
 
 func (d *RamDisk) ReadBlock(index int) DiskLayer.RealBlock {
 	if index < 0 || index > len(d.blocks) {
+		debug.PrintStack()
 		log.Fatal("Invalid disk read access at ", index)
 	}
 	return d.blocks[index]

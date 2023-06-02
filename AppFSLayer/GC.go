@@ -41,6 +41,7 @@ func (afs *AppFS) ExtractNeeded(inodeMapO map[int]BlockLayer.INodeMap, inodesO m
 
 func (afs *AppFS) GC(maxSegCount int) int {
 	fmt.Println("\n\nBefore:", afs.blockFs.SuperBlockUNsafe().INodeMaps)
+	afs.LogCommit()
 	scanStart := 0
 	imapFinal := make(map[int]BlockLayer.INodeMap)
 	count := 0
@@ -74,8 +75,6 @@ func (afs *AppFS) GC(maxSegCount int) int {
 
 		fmt.Println("inodem: ", inodeM)
 		imapFinal = inmapMerge(imapFinal, inodeM)
-		//fmt.Println("imapFinal:")
-		//fmt.Println(imapFinal)
 		conSuccess := afs.fLog.ConstructLog(inodes, dataBs)
 		if !conSuccess {
 			//fmt.Println("AOW!!!!!!")

@@ -9,6 +9,6 @@ func main() {
 	//Test.Test4()
 	//Test.Test5()
 	//Test.Test6()
-	//Test.Test7()
-	Test.Test8()
+	Test.Test7()
+	//Test.Test8()
 }

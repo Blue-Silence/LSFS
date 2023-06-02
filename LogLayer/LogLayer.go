@@ -76,6 +76,20 @@ func (L *FSLog) Log2DiskBlock(start int, inodeMap map[int]BlockLayer.INodeMap) (
 	var segHead BlockLayer.SegHead
 	segHead.InodeMapN, segHead.InodeBlockN, segHead.DataBlockN, _ = L.LenInBlock()
 
+	inodeMapC := make(map[int]BlockLayer.INodeMap)
+	for i, v := range inodeMap {
+		inodeMapC[i] = v
+	}
+	for _, v := range L.inodeByImap {
+		for _, n := range v {
+			inodeMapC[n.InodeN/Setting.InodePerInodemapBlock] = BlockLayer.INodeMap{}
+		}
+	}
+	segHead.InodeMapN = 0
+	for _, _ = range inodeMapC {
+		segHead.InodeMapN++
+	} //This way we will get the real length of InodeMap block
+
 	var dataBlock []DiskLayer.Block
 
 	//fmt.Println("segHead.DataBlockN:", segHead.DataBlockN)

@@ -59,8 +59,12 @@ func (afs *AppFS) LogCommitWithINMap(imapNeeded map[int]BlockLayer.INodeMap) {
 	for _, v := range afs.fLog.ImapNeeded() {
 		imapNeeded[v] = BlockLayer.INodeMap{}.FromBlock(afs.blockFs.VD.ReadBlock(BlockLayer.SuperBlock{}.FromBlocks(afs.blockFs.VD.ReadSuperBlock()).INodeMaps[v])).(BlockLayer.INodeMap)
 	} //Get inaodmap needed
+	c := 0
+	for range imapNeeded {
+		c++
+	}
 	_, _, _, logSegLen := afs.fLog.LenInBlock()
-	start := afs.blockFs.FindSpaceForSeg(logSegLen)
+	start := afs.blockFs.FindSpaceForSeg(logSegLen + c)
 	if start < 0 {
 		//WE will add GC later. TO BE DONE
 		afs.GC(-1)

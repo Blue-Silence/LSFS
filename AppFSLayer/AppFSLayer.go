@@ -7,7 +7,6 @@ import (
 	"LSF/Setting"
 
 	//"fmt"
-	"runtime/debug"
 
 	//"fmt"
 	"log"
@@ -113,38 +112,17 @@ func (afs *AppFS) WriteFile(inodeN int, index []int, data []DiskLayer.Block) {
 	for i, ind := range index {
 		_, _, traces := afs.findBlockFromStart(true, inodeN, ind)
 		inode := afs.GetFileINfo(traces[len(traces)-1].inode.InodeN)
-		//fmt.Println("\n\nWrite at :", inode, " \ndata to write:", "Inode: ", inode.InodeN, "Index: ", traces[len(traces)-1].offset, "\n\n")
-		afs.LogCommit() //
-		afs.fLog.PrintLog()
 		afs.tryLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{LogLayer.DataBlockMem{Inode: inode.InodeN, Index: traces[len(traces)-1].offset, Data: data[i].ToBlock()}})
-		afs.fLog.PrintLog()
-		afs.LogCommit() //
-		//fmt.Println("\n\nAfter write:", afs.GetFileINfo(inode.InodeN), " \n\n")
 	}
-	//ds := []LogLayer.DataBlockMem{}
-	//for i, v := range index {
-	//	ds = append(ds, LogLayer.DataBlockMem{Inode: inodeN, Index: v, Data: data[i].ToBlock()})
-	//}
-
-	//afs.fLog.ConstructLog([]BlockLayer.INode{inode}, ds)
-
-	//afs.tryLog([]BlockLayer.INode{inode}, ds)
 }
 
 func (afs *AppFS) ReadFile(inodeN int, index int) DiskLayer.RealBlock {
-	/*if afs.isINodeInLog(inodeN) {
-		afs.LogCommit()
-	}
-	return afs.blockFs.ReadFile(inodeN, index)*/
-
-	b, rtrs, traces := afs.findBlockFromStart(false, inodeN, index)
+	b, _, traces := afs.findBlockFromStart(false, inodeN, index)
 	if b {
 		inode := afs.GetFileINfo(traces[len(traces)-1].inode.InodeN)
 		//fmt.Println("trace:", traces)
 		return afs.blockFs.ReadFile(inode.InodeN, traces[len(traces)-1].offset)
 	} else {
-		debug.PrintStack()
-		log.Fatal("Empty!:", inodeN, "INdex:", index, traces, rtrs)
 		var e DiskLayer.RealBlock
 		return e
 	}
@@ -161,11 +139,14 @@ func (afs *AppFS) DeleteFile(inodeN int) {
 
 func (afs *AppFS) DeleteBlockInFile(inodeN int, index []int) {
 	inode := afs.GetFileINfo(inodeN)
-	for _, v := range index {
-		inode.Pointers[v] = -1
+	for _, ind := range index {
+		b, _, traces := afs.findBlockFromStart(false, inodeN, ind)
+		if b {
+			inode = afs.GetFileINfo(traces[len(traces)-1].inode.InodeN)
+			inode.Pointers[traces[len(traces)-1].offset] = -1
+			afs.tryLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
+		}
 	}
-	//afs.fLog.ConstructLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
-	afs.tryLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
 }
 
 func (afs *AppFS) tryLog(inodes []BlockLayer.INode, ds []LogLayer.DataBlockMem) {

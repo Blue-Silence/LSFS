@@ -3,6 +3,7 @@ package BlockLayer
 import "LSF/Setting"
 
 const MaxEditBlcokN int = 100
+const DirectPointerPerINode = 10
 
 const (
 	NormalFile int = 0
@@ -44,7 +45,7 @@ type INode struct {
 	InodeN   int
 	Name     string
 	FileType int
-	Pointers [10]int
+	Pointers [DirectPointerPerINode]int
 
 	PointerToNextINode int
 	CurrentLevel       int

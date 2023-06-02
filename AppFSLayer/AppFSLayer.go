@@ -80,47 +80,41 @@ func (afs *AppFS) GetFileINfo(inodeN int) BlockLayer.INode {
 }
 
 func (afs *AppFS) CreateFile(fType int, name string) int {
-	newInodeN := afs.findFreeINode()
-	if afs.isINodeInLog(newInodeN) {
-		afs.LogCommit()
-		//fmt.Println("Ha?")
-		newInodeN = afs.findFreeINode()
-	} //Avoid reallocating a inode.
-
-	if newInodeN == -1 {
-		log.Fatal("No inode number available.") //Maybe later we should check the log? Maybe later. TO BE DONE
-	}
-	/*if afs.fLog.ConstructLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN)}, []LogLayer.DataBlockMem{}) {
-	} else {
-		afs.LogCommit()
-		//fmt.Println("Oh?")
-		afs.fLog.ConstructLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN)}, []LogLayer.DataBlockMem{})
-	}*/
-	afs.tryLog([]BlockLayer.INode{createInode(fType, name, true, newInodeN, 0, true)}, []LogLayer.DataBlockMem{})
-	return newInodeN
+	return afs.createFileWithSpecINodeType(fType, name, 0, true)
 }
 
 func (afs *AppFS) WriteFile(inodeN int, index []int, data []DiskLayer.Block) {
-	if afs.isINodeInLog(inodeN) {
-		afs.LogCommit()
-	}
-	inode := afs.blockFs.INodeN2iNode(inodeN)
+	inode := afs.GetFileINfo(inodeN)
 	if inode.Valid == false {
 		log.Fatal("Invalid write to non-exsistent inode:", inodeN, "  get inode:", inode)
 	}
 	ds := []LogLayer.DataBlockMem{}
+	ins := []BlockLayer.INode{}
 	for i, v := range index {
-		ds = append(ds, LogLayer.DataBlockMem{Inode: inodeN, Index: v, Data: data[i].ToBlock()})
+		_, _, traces := afs.findBlockFromStart(true, inodeN, v)
+		traceTail := traces[len(traces)-1]
+		//ds = append(ds, LogLayer.DataBlockMem{Inode: inodeN, Index: v, Data: data[i].ToBlock()})
+		ins = append(ins, afs.GetFileINfo(traceTail.inode.InodeN))
+		ds = append(ds, LogLayer.DataBlockMem{Inode: traceTail.inode.InodeN, Index: traceTail.offset, Data: data[i].ToBlock()})
 	}
 	//afs.fLog.ConstructLog([]BlockLayer.INode{inode}, ds)
-	afs.tryLog([]BlockLayer.INode{inode}, ds)
+	afs.tryLog(ins, ds)
 }
 
 func (afs *AppFS) ReadFile(inodeN int, index int) DiskLayer.RealBlock {
 	if afs.isINodeInLog(inodeN) {
 		afs.LogCommit()
 	}
-	return afs.blockFs.ReadFile(inodeN, index)
+	var emptyB DiskLayer.RealBlock
+	b, rs, trsTree := afs.findBlockFromStart(false, inodeN, index)
+	if b {
+		leaf := trsTree[len(trsTree)-1]
+		return afs.blockFs.ReadFile(leaf.inode.InodeN, leaf.offset)
+	}
+	log.Println(rs)
+	log.Println(trsTree)
+	log.Fatal("GOT EMPTY BLOCK!")
+	return emptyB
 }
 
 func (afs *AppFS) DeleteFile(inodeN int) {
@@ -136,12 +130,17 @@ func (afs *AppFS) DeleteBlockInFile(inodeN int, index []int) {
 	if afs.isINodeInLog(inodeN) {
 		afs.LogCommit()
 	}
-	inode := afs.blockFs.INodeN2iNode(inodeN)
 	for _, v := range index {
-		inode.Pointers[v] = -1
+		b, _, treeTrs := afs.findBlockFromStart(false, inodeN, v)
+		if b {
+			inode := afs.GetFileINfo(treeTrs[len(treeTrs)-1].inode.InodeN)
+			//treeTrs[len(treeTrs)-1].inode.Pointers[treeTrs[len(treeTrs)-1].offset] = -1
+			inode.Pointers[treeTrs[len(treeTrs)-1].offset] = -1
+			afs.tryLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
+			//afs.LogCommit() //We may do GC later.
+		}
+		//inode.Pointers[v] = -1
 	}
-	//afs.fLog.ConstructLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
-	afs.tryLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
 }
 
 func (afs *AppFS) tryLog(inodes []BlockLayer.INode, ds []LogLayer.DataBlockMem) {

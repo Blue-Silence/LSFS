@@ -36,6 +36,9 @@ func (fs *BlockFS) INodeN2iNodeAndPointer(n int) (INode, int) {
 	if iNodemap.Index != n/Setting.InodePerInodemapBlock {
 		log.Fatal("Warning!Mistmatch!")
 	}
+	if iNodeBlockN < 0 {
+		return INode{Valid: false}, -1
+	} // To handle the not-allocated inode situation.
 
 	var nB INodeBlock = INodeBlock{}.FromBlock((fs.VD.ReadBlock(iNodeBlockN))).(INodeBlock)
 	for _, v := range nB.NodeArr {

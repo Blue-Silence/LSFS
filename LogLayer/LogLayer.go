@@ -119,7 +119,12 @@ func (L *FSLog) Log2DiskBlock(start int, inodeMap map[int]BlockLayer.INodeMap) (
 			nodesByBlock[len(nodesByBlock)-1].NodeArr[nodeCount] = n
 			nodeCount++
 			//and also do something to change imap next (TO BE DONE)
-			iPart := inodeMap[n.InodeN/Setting.InodePerInodemapBlock]
+			iPart, ok := inodeMap[n.InodeN/Setting.InodePerInodemapBlock]
+			if !ok {
+				for i, _ := range iPart.InodeMapPart {
+					iPart.InodeMapPart[i] = -1
+				}
+			} //This is critical,for it init the not-allocated inode number to -1 block.
 			iPart.Index = n.InodeN / Setting.InodePerInodemapBlock
 			(iPart.InodeMapPart)[n.InodeN%Setting.InodePerInodemapBlock] = len(nodesByBlock) - 1 + start + 1 + segHead.InodeMapN
 			inodeMap[n.InodeN/Setting.InodePerInodemapBlock] = iPart

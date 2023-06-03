@@ -149,6 +149,7 @@ func (afs *AppFS) DeleteFile(inodeN int) {
 	afs.tryLog([]BlockLayer.INode{inode}, []LogLayer.DataBlockMem{})
 }
 
+/*
 func (afs *AppFS) DeleteBlockInFile(inodeN int, index []int) {
 	inode := afs.GetFileINfo(inodeN)
 	for _, ind := range index {
@@ -160,6 +161,33 @@ func (afs *AppFS) DeleteBlockInFile(inodeN int, index []int) {
 		}
 	}
 }
+*/
+
+func (afs *AppFS) DeleteBlockInFile(inodeN int, index []int) {
+	inode := afs.GetFileINfo(inodeN)
+	inodeDels := make(map[int]BlockLayer.INode)
+	for _, ind := range index {
+		b, _, traces := afs.findBlockFromStart(false, inodeN, ind)
+		if b {
+			inode = afs.GetFileINfo(traces[len(traces)-1].inode.InodeN)
+			_, ok := inodeDels[inode.InodeN]
+			if !ok {
+				inode.Pointers[traces[len(traces)-1].offset] = -1
+				inodeDels[inode.InodeN] = inode
+			} else {
+				inode = inodeDels[inode.InodeN]
+				inode.Pointers[traces[len(traces)-1].offset] = -1
+				inodeDels[inode.InodeN] = inode
+			}
+			//inode.Pointers[traces[len(traces)-1].offset] = -1
+		}
+	}
+	inodeLt := []BlockLayer.INode{}
+	for _, v := range inodeDels {
+		inodeLt = append(inodeLt, v)
+	}
+	afs.tryLog(inodeLt, []LogLayer.DataBlockMem{})
+} //Improve perf.
 
 func (afs *AppFS) tryLog(inodes []BlockLayer.INode, ds []LogLayer.DataBlockMem) {
 	if afs.fLog.NeedCommit() {

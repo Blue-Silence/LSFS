@@ -16,6 +16,10 @@ func (fs *BlockFS) ReadFile(inodeN int, index int) DiskLayer.RealBlock {
 	if inode.Valid == false {
 		log.Fatal("No Valid inode found for:", inodeN)
 	}
+	if inode.Pointers[index] < 0 {
+		var empty DiskLayer.RealBlock
+		return empty
+	}
 	return fs.VD.ReadBlock(inode.Pointers[index])
 }
 
@@ -125,6 +129,11 @@ func (fs *BlockFS) Init(VD DiskLayer.VirtualDisk) {
 		fs.superBlock.INodeMaps[i] = -1
 	}
 	fs.VD.WriteSuperBlock(fs.superBlock.ToBlocks())
+}
+
+func (fs *BlockFS) Load(VD DiskLayer.VirtualDisk) {
+	fs.VD = VD
+	fs.superBlock = fs.superBlock.FromBlocks(VD.ReadSuperBlock())
 }
 
 /////////////////////////////////////////////////

@@ -4,7 +4,8 @@ import (
 	"LSF/BlockLayer"
 	"LSF/DiskLayer"
 	"LSF/LogLayer"
-	"fmt"
+
+	//"fmt"
 	"log"
 	//"fmt"
 )
@@ -40,7 +41,7 @@ func (afs *AppFS) ExtractNeeded(inodeMapO map[int]BlockLayer.INodeMap, inodesO m
 }
 
 func (afs *AppFS) GC(maxSegCount int) int {
-	fmt.Println("\n\nBefore:", afs.blockFs.SuperBlockUNsafe().INodeMaps)
+	//fmt.Println("\n\nBefore:", afs.blockFs.SuperBlockUNsafe().INodeMaps)
 	afs.LogCommit()
 	scanStart := 0
 	imapFinal := make(map[int]BlockLayer.INodeMap)
@@ -73,7 +74,7 @@ func (afs *AppFS) GC(maxSegCount int) int {
 		inodeM, inodes, dataBs := afs.ExtractNeeded(inodeMO, inodesO, dataBsO)
 		afs.blockFs.ReclaimBlock(hP, segLen)
 
-		fmt.Println("inodem: ", inodeM)
+		//fmt.Println("inodem: ", inodeM)
 		imapFinal = inmapMerge(imapFinal, inodeM)
 		conSuccess := afs.fLog.ConstructLog(inodes, dataBs)
 		if !conSuccess {
@@ -86,11 +87,11 @@ func (afs *AppFS) GC(maxSegCount int) int {
 			log.Fatal("Bug here!!!Reconstruction fail!")
 		}
 		//fmt.Println()
-		fmt.Println("After:", afs.blockFs.SuperBlockUNsafe().INodeMaps)
+		//fmt.Println("After:", afs.blockFs.SuperBlockUNsafe().INodeMaps)
 	}
-	fmt.Println("imapFinal:\n", imapFinal)
+	//fmt.Println("imapFinal:\n", imapFinal)
 	afs.LogCommitWithINMap(imapFinal)
-	fmt.Println("After:", afs.blockFs.SuperBlockUNsafe().INodeMaps)
+	//fmt.Println("After:", afs.blockFs.SuperBlockUNsafe().INodeMaps)
 	return count
 }
 
